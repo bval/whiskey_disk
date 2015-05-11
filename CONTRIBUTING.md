@@ -1,3 +1,11 @@
+Running Specs
+-------------
+
+To run the spec suite, you need to be able to ssh to localhost, ideally
+without an interactive password prompt each time. To facilitate this,
+please make sure an SSH key that is added to your `ssh-agent` is also
+listed in `$HOME/.ssh/authorized_keys`.
+
 Running Integration Specs
 -------------------------
 

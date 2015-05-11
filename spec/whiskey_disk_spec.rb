@@ -1058,7 +1058,7 @@ describe '@whiskey_disk' do
 
   describe 'when running a command string remotely' do
     before do
-      @domain_name = 'ogc@ogtastic.com'
+      @domain_name = 'localhost'
       @domain = { 'name' => @domain_name }
       @whiskey_disk.configuration = { 'domain' => [ @domain ] }
       @whiskey_disk.stub!(:system)
