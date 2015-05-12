@@ -969,7 +969,7 @@ describe '@whiskey_disk' do
   describe 'flushing changes' do
     before do
       @cmd = 'ls'
-      @domains = [ { 'name' => 'ogc@ogtastic.com' }, { 'name' => 'foo@example.com' }, { 'name' => 'local' } ]
+      @domains = [ { 'name' => 'localhost' }, { 'name' => 'local' } ]
       @whiskey_disk.configuration = { 'domain' => @domains }
       @whiskey_disk.stub!(:domain_of_interest?).and_return(true)
       @whiskey_disk.stub!(:bundle).and_return(@cmd)
@@ -983,8 +983,7 @@ describe '@whiskey_disk' do
     end
 
     it 'uses "run" to issue commands for all remote domains' do
-      @whiskey_disk.should.receive(:run).with({ 'name' => 'ogc@ogtastic.com' }, @cmd)
-      @whiskey_disk.should.receive(:run).with({ 'name' => 'foo@example.com' }, @cmd)
+      @whiskey_disk.should.receive(:run).with({ 'name' => 'localhost' }, @cmd)
       @whiskey_disk.flush
     end
     
@@ -1061,8 +1060,8 @@ describe '@whiskey_disk' do
       @domain_name = 'localhost'
       @domain = { 'name' => @domain_name }
       @whiskey_disk.configuration = { 'domain' => [ @domain ] }
-      @whiskey_disk.stub!(:system)
       @whiskey_disk.stub!(:puts)
+      IO.stub!(:popen)
     end
     
     it 'accepts a domain and a command string' do
@@ -1084,8 +1083,12 @@ describe '@whiskey_disk' do
     describe 'when debugging is enabled' do
       before { ENV['debug'] = 'true' }
 
-      it 'passes the string to ssh for the domain, with verbosity enabled' do
-        @whiskey_disk.should.receive(:system).with('ssh', @domain_name, '-v', "set -x; ls")
+      it 'sshes to the domain, with verbosity enabled' do
+        ssh = mock('io')
+        IO.should.receive(:popen).with("ssh #{@domain_name} -v $SHELL -s", 'r+').and_yield(ssh)
+        ssh.should.receive(:puts).with('set -x; ls')
+        ssh.should.receive(:close_write)
+        ssh.should.receive(:read)
         @whiskey_disk.run(@domain, 'ls')
       end
     end
@@ -1093,8 +1096,12 @@ describe '@whiskey_disk' do
     describe 'when debugging is not enabled' do
       before { ENV['debug'] = 'false' }
 
-      it 'passes the string to ssh for the domain, with verbosity disabled' do
-        @whiskey_disk.should.receive(:system).with('ssh', @domain_name, "ls")
+      it 'sshes to the domain, with verbosity disabled' do
+        ssh = mock('io')
+        IO.should.receive(:popen).with("ssh #{@domain_name} $SHELL -s", 'r+').and_yield(ssh)
+        ssh.should.receive(:puts).with('ls')
+        ssh.should.receive(:close_write)
+        ssh.should.receive(:read)
         @whiskey_disk.run(@domain, 'ls')
       end
     end
@@ -1107,7 +1114,7 @@ describe '@whiskey_disk' do
       end
       
       it 'includes the ssh options when running ssh' do
-        @whiskey_disk.should.receive(:system).with('ssh', @domain_name, '-t', '-p 12345', 'ls')
+        IO.should.receive(:popen).with("ssh #{@domain_name} -t -p 12345 $SHELL -s", 'r+')
         @whiskey_disk.run(@domain, 'ls')
       end
     end

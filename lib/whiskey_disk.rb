@@ -141,10 +141,13 @@ class WhiskeyDisk
     args << domain['name']
     args << '-v' if debugging?
     args += domain['ssh_options'] if domain['ssh_options']
-    args << build_command(domain, cmd)
 
-    puts "Running: ssh #{args.join(' ')}" if debugging?
-    system('ssh', *args)
+    puts "Running: ssh #{args.join(' ')} $SHELL -s" if debugging?
+    IO.popen("ssh #{args.join(' ')} $SHELL -s", 'r+') do |ssh|
+      ssh.puts build_command(domain, cmd)
+      ssh.close_write
+      puts ssh.read
+    end
   end
   
   def shell(domain, cmd)
